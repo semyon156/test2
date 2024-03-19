@@ -54,6 +54,7 @@ android {
 }
 
         //mwrge
+//New branch 2
 dependencies {
 
     implementation(libs.androidx.core.ktx)

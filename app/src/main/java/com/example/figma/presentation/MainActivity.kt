@@ -1,5 +1,6 @@
 package com.example.figma.presentation
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -28,6 +29,8 @@ import com.example.figma.MyApp
 import com.example.figma.R
 import com.example.figma.domain.model.QueueModel
 import com.example.figma.domain.queue.MyQueue
+import com.example.figma.presentation.ui.screen.NavigationApp
+import com.example.figma.presentation.ui.screen.OnboardingMain
 import com.example.figma.presentation.ui.screen.OnboardingScreen
 import com.example.figma.presentation.ui.screen.SplashScreen
 import com.example.figma.presentation.ui.theme.FigmaTheme
@@ -49,65 +52,38 @@ class MainActivity : ComponentActivity() {
         setContent {
             FigmaTheme {
                 val navController = rememberNavController()
-                var clickNext by rememberSaveable { mutableStateOf(true) }
-                var clickSkip by rememberSaveable { mutableStateOf(false) }
 
-                var queueItemImage by rememberSaveable { mutableIntStateOf(R.drawable.onboard_1) }
-                var queueItemText1 by rememberSaveable { mutableStateOf("") }
-                var queueItemText2 by rememberSaveable { mutableStateOf("") }
+                StartApp(navController = navController)
 
-                LaunchedEffect(Unit) {
-                    delay(2000)
+                NavigationApp(navController = navController, queue = queue, sharedPref = sharedPref, supabase = supabase)
+            }
+        }
+    }
+
+    @Composable
+    private fun StartApp(navController: NavController) {
+        LaunchedEffect(Unit) {
+            delay(2000)
+            val skip = sharedPref.getInt("skip", 2)
+            when(skip) {
+                2 -> {
                     navController.navigate("onboard")
                 }
-
-                LaunchedEffect(clickNext) {
-                    if (clickNext) {
-                        if (queue.getSize() == 0) navController.navigate("holder") else {
-                            val item = queue.pollItem()
-                            queueItemImage = item!!.image
-                            queueItemText1 = item.text1
-                            queueItemText2 = item.text2
-                        }
-                        clickNext = false
-                    }
+                1 -> {
+                    navController.navigate("onboard")
+                    queue.pollItem()
                 }
-
-                LaunchedEffect(clickSkip) {
-                    if (clickSkip) {
-                        navController.navigate("holder")
-                        queue.clearQueue()
-                        clickSkip = false
-                    }
+                0 -> {
+                    navController.navigate("onboard")
+                    queue.pollItem()
+                    queue.pollItem()
                 }
-
-                NavHost(navController = navController, startDestination = "splash") {
-                    composable("splash") {
-                        SplashScreen()
-                    }
-                    composable("onboard") {
-                        OnboardingScreen(
-                            image = queueItemImage,
-                            text1 = queueItemText1,
-                            text2 = queueItemText2,
-                            clickNext = {
-                                clickNext = true
-                            },
-                            clickSkip = {
-                                clickSkip = true
-                            },
-                            clickSignIn = { navController.navigate("holder") },
-                            clickSignUp = { navController.navigate("holder") },
-                            queueSize = queue.getSize()
-                        )
-                    }
-                    composable("holder") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.background)
-                        )
-                    }
+                -1 -> {
+                    queue.clearQueue()
+                    navController.navigate("sign_up")
+                }
+                else -> {
+                    navController.navigate("onboard")
                 }
             }
         }

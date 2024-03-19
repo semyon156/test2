@@ -1,5 +1,6 @@
 package com.example.figma.presentation.ui.screen
 
+import android.content.SharedPreferences
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -36,8 +38,62 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.figma.R
+import com.example.figma.domain.queue.MyQueue
 import com.example.figma.presentation.ui.theme.FigmaTheme
+import kotlinx.coroutines.delay
+
+@Composable
+fun OnboardingMain(navController: NavController, queue: MyQueue, sharedPref: SharedPreferences) {
+    var clickNext by rememberSaveable { mutableStateOf(true) }
+    var clickSkip by rememberSaveable { mutableStateOf(false) }
+
+    var queueItemImage by rememberSaveable { mutableIntStateOf(R.drawable.onboard_1) }
+    var queueItemText1 by rememberSaveable { mutableStateOf("") }
+    var queueItemText2 by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(clickNext) {
+        if (clickNext) {
+            if (queue.getSize() == 0) navController.navigate("holder") else {
+                val item = queue.pollItem()
+                queueItemImage = item!!.image
+                queueItemText1 = item.text1
+                queueItemText2 = item.text2
+                if (queue.getSize() == 0) {
+                    sharedPref.edit().putInt("skip", -1).apply()
+                } else {
+                    sharedPref.edit().putInt("skip", queue.getSize()).apply()
+                }
+            }
+            clickNext = false
+        }
+    }
+
+    LaunchedEffect(clickSkip) {
+        if (clickSkip) {
+            navController.navigate("holder")
+            queue.clearQueue()
+            sharedPref.edit().putInt("skip", -1).apply()
+            clickSkip = false
+        }
+    }
+
+    OnboardingScreen(
+        image = queueItemImage,
+        text1 = queueItemText1,
+        text2 = queueItemText2,
+        clickNext = {
+            clickNext = true
+        },
+        clickSkip = {
+            clickSkip = true
+        },
+        clickSignIn = { navController.navigate("holder") },
+        clickSignUp = { navController.navigate("holder") },
+        queueSize = queue.getSize()
+    )
+}
 
 @Composable
 fun OnboardingScreen(
